@@ -5,7 +5,6 @@
 //  Created by Tsang Hing Tat on 10/29/26.
 //
 
-
 import Foundation
 import CoreGraphics
 import AppKit
@@ -18,11 +17,10 @@ final class MouseController {
     private var lastMousePosition: CGPoint = .zero
     private let filter = AdaptiveFilter()
     
-    var activeZonePadding: CGFloat = 0.15
-    var smoothing: Double = 0.65 {
+    var sensitivity: Double = 1.5
+    var smoothing: Double = 0.50 {
         didSet { filter.baseSmoothing = smoothing }
     }
-    var scrollSensitivity: CGFloat = 20.0
     
     init() {
         filter.baseSmoothing = smoothing
@@ -57,11 +55,14 @@ final class MouseController {
         // Horizontal mirroring
         let nx = mirrored ? (1.0 - normalizedPoint.x) : normalizedPoint.x
         let ny = 1.0 - normalizedPoint.y
-    
-        let minX = activeZonePadding
-        let maxX = 1.0 - activeZonePadding
-        let minY = activeZonePadding
-        let maxY = 1.0 - activeZonePadding
+        
+        // Center-based sensitivity mapping
+        let safeSensitivity = max(sensitivity, 0.4)
+        let halfSpan = 0.5 / safeSensitivity
+        let minX = 0.5 - halfSpan
+        let maxX = 0.5 + halfSpan
+        let minY = 0.5 - halfSpan
+        let maxY = 0.5 + halfSpan
         
         let clampedX = min(max(nx, minX), maxX)
         let clampedY = min(max(ny, minY), maxY)
@@ -77,27 +78,37 @@ final class MouseController {
     }
     
     // MARK: - Mouse Actions
+     
     func moveTo(point: CGPoint) {
         lastMousePosition = point
         CGWarpMouseCursorPosition(point)
-        
-        if isLeftButtonDown {
-            if let event = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDragged, mouseCursorPosition: point, mouseButton: .left) {
-                event.post(tap: .cghidEventTap)
-            }
-        } else {
-            if let event = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left) {
-                event.post(tap: .cghidEventTap)
-            }
+        if let event = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left) {
+            event.post(tap: .cghidEventTap)
         }
     }
-    
-    func setLeftButton(down: Bool) {
+     
+    func dragTo(point: CGPoint) {
+        lastMousePosition = point
+        CGWarpMouseCursorPosition(point)
+        if let event = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDragged, mouseCursorPosition: point, mouseButton: .left) {
+            event.post(tap: .cghidEventTap)
+        }
+    }
+     
+    func lockAt(point: CGPoint) {
+        lastMousePosition = point
+        CGWarpMouseCursorPosition(point)
+    }
+     
+    func setLeftButton(down: Bool, at point: CGPoint? = nil) {
         guard down != isLeftButtonDown else { return }
         isLeftButtonDown = down
         
+        let targetPoint = point ?? lastMousePosition
+        lastMousePosition = targetPoint
+        
         let mouseType: CGEventType = down ? .leftMouseDown : .leftMouseUp
-        if let event = CGEvent(mouseEventSource: nil, mouseType: mouseType, mouseCursorPosition: lastMousePosition, mouseButton: .left) {
+        if let event = CGEvent(mouseEventSource: nil, mouseType: mouseType, mouseCursorPosition: targetPoint, mouseButton: .left) {
             event.post(tap: .cghidEventTap)
         }
     }
@@ -109,24 +120,6 @@ final class MouseController {
         usleep(30000) // 30ms
         if let upEvent = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: lastMousePosition, mouseButton: .left) {
             upEvent.post(tap: .cghidEventTap)
-        }
-    }
-    
-    func performRightClick() {
-        if let downEvent = CGEvent(mouseEventSource: nil, mouseType: .rightMouseDown, mouseCursorPosition: lastMousePosition, mouseButton: .right) {
-            downEvent.post(tap: .cghidEventTap)
-        }
-        usleep(30000) // 30ms
-        if let upEvent = CGEvent(mouseEventSource: nil, mouseType: .rightMouseUp, mouseCursorPosition: lastMousePosition, mouseButton: .right) {
-            upEvent.post(tap: .cghidEventTap)
-        }
-    }
-    
-    func scroll(deltaY: CGFloat) {
-        let scrollAmount = Int32(deltaY * scrollSensitivity)
-        guard scrollAmount != 0 else { return }
-        if let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 1, wheel1: scrollAmount, wheel2: 0, wheel3: 0) {
-            event.post(tap: .cghidEventTap)
         }
     }
      

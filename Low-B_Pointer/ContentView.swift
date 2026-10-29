@@ -10,7 +10,6 @@ import AVFoundation
 
 struct ContentView: View {
     @StateObject private var viewModel = HandGestureViewModel()
-    @State private var selectedTab: Int = 0
     
     var body: some View {
         VStack(spacing: 0) {
@@ -120,7 +119,7 @@ struct ContentView: View {
                         Text(viewModel.cameraAuthStatus == .denied ? "相機權限已被拒絕" : "需要相機存取權限")
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                        Text(viewModel.cameraAuthStatus == .denied ? "請在 macOS「系統設定 ➔ 隱私權與安全性 ➔ 相機」中開啟本 App 的權限。" : "相機用於實時捕捉手指手勢，影像僅在設備本地進行處理。")
+                        Text(viewModel.cameraAuthStatus == .denied ? "請在 macOS「系統設定 ➔ 隱私權與安全性 ➔ 相機」中開啟本 App 的權限。" : "相機用於實時捕捉手部手勢，影像僅在設備本地進行處理。")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -202,15 +201,15 @@ struct ContentView: View {
                             .aspectRatio(contentMode: .fit)
                             .frame(width: size.width, height: size.height)
                             .scaleEffect(x: viewModel.mirrorCamera ? -1 : 1, y: 1)
-                        
-                        // Hand Skeleton and Gesture Overlay Canvas
+                         
                         let isMirrored = viewModel.mirrorCamera
-                        let pad = CGFloat(viewModel.activeZonePadding)
                         let pinchThresh = CGFloat(viewModel.pinchThreshold)
+                        let sensitivity = CGFloat(viewModel.sensitivity)
                         let landmarks = viewModel.handLandmarks
+                        let isPinching = viewModel.isPinchingLeft
+                        let isDragging = viewModel.isActivelyDragging
                         
                         Canvas { context, canvasSize in
-                            // Compute video fitting rect inside the canvas
                             let imageAspect = CGFloat(cgImage.width) / CGFloat(cgImage.height)
                             let viewAspect = canvasSize.width / canvasSize.height
                             
@@ -224,13 +223,16 @@ struct ContentView: View {
                                 let h = w / imageAspect
                                 drawRect = CGRect(x: 0, y: (canvasSize.height - h) / 2, width: w, height: h)
                             }
-                            
-                            // Draw Active Tracking Zone Border
+                             
+                            let safeSens = max(sensitivity, 0.4)
+                            let span = min(1.0, 1.0 / safeSens)
+                            let boxW = drawRect.width * span
+                            let boxH = drawRect.height * span
                             let activeRect = CGRect(
-                                x: drawRect.minX + drawRect.width * pad,
-                                y: drawRect.minY + drawRect.height * pad,
-                                width: drawRect.width * (1.0 - 2 * pad),
-                                height: drawRect.height * (1.0 - 2 * pad)
+                                x: drawRect.minX + (drawRect.width - boxW) / 2.0,
+                                y: drawRect.minY + (drawRect.height - boxH) / 2.0,
+                                width: boxW,
+                                height: boxH
                             )
                             context.stroke(
                                 Path(roundedRect: activeRect, cornerRadius: 8),
@@ -239,8 +241,7 @@ struct ContentView: View {
                             )
                             
                             guard let landmarks = landmarks else { return }
-                            
-                            // Convert normalized point to canvas point
+                             
                             func mapPt(_ pt: CGPoint) -> CGPoint {
                                 let nx = isMirrored ? (1.0 - pt.x) : pt.x
                                 let ny = 1.0 - pt.y
@@ -249,8 +250,7 @@ struct ContentView: View {
                                     y: drawRect.minY + ny * drawRect.height
                                 )
                             }
-                            
-                            // 1. Draw Bones
+                             
                             for (p1, p2) in landmarks.boneSegments {
                                 var path = Path()
                                 path.move(to: mapPt(p1))
@@ -261,15 +261,13 @@ struct ContentView: View {
                                     style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
                                 )
                             }
-                            
-                            // 2. Draw Joints
+                             
                             for pt in landmarks.allKeypoints {
                                 let mapped = mapPt(pt)
                                 let circle = Path(ellipseIn: CGRect(x: mapped.x - 3.5, y: mapped.y - 3.5, width: 7, height: 7))
                                 context.fill(circle, with: .color(Color.white.opacity(0.85)))
                             }
-                            
-                            // 3. Highlight Thumb and Index Pinch line
+                             
                             if let thumb = landmarks.thumbTip, let index = landmarks.indexTip {
                                 let thumbPt = mapPt(thumb)
                                 let indexPt = mapPt(index)
@@ -278,65 +276,51 @@ struct ContentView: View {
                                 pinchLine.move(to: thumbPt)
                                 pinchLine.addLine(to: indexPt)
                                 
-                                let isPinching = landmarks.thumbToIndexDistance < pinchThresh
-                                let lineColor = isPinching ? Color.green : Color.orange.opacity(0.8)
+                                let currentPinching = landmarks.thumbToIndexDistance < pinchThresh || isPinching
+                                let lineColor = currentPinching ? Color.green : Color.orange.opacity(0.8)
                                 context.stroke(
                                     pinchLine,
                                     with: .color(lineColor),
-                                    style: StrokeStyle(lineWidth: isPinching ? 3.5 : 1.5)
+                                    style: StrokeStyle(lineWidth: currentPinching ? 3.5 : 1.5)
                                 )
-                                
-                                // Thumb indicator
+                                 
                                 let thumbCircle = Path(ellipseIn: CGRect(x: thumbPt.x - 6, y: thumbPt.y - 6, width: 12, height: 12))
-                                context.fill(thumbCircle, with: .color(isPinching ? Color.green : Color.orange))
+                                context.fill(thumbCircle, with: .color(currentPinching ? Color.green : Color.orange))
+                                 
+                                let indexCircle = Path(ellipseIn: CGRect(x: indexPt.x - 6, y: indexPt.y - 6, width: 12, height: 12))
+                                context.fill(indexCircle, with: .color(currentPinching ? Color.green : Color.orange))
                             }
-                            
-                            // 4. Highlight Cursor Tracking Point (Index Tip)
-                            if let index = landmarks.indexTip {
-                                let indexPt = mapPt(index)
-                                
-                                // Outer glow circle
-                                let glowCircle = Path(ellipseIn: CGRect(x: indexPt.x - 14, y: indexPt.y - 14, width: 28, height: 28))
-                                context.stroke(glowCircle, with: .color(Color.green.opacity(0.7)), lineWidth: 2)
-                                
-                                // Center point
-                                let centerDot = Path(ellipseIn: CGRect(x: indexPt.x - 6, y: indexPt.y - 6, width: 12, height: 12))
-                                context.fill(centerDot, with: .color(Color.green))
-                                
-                                // Dwell Progress Ring (Apple Vision Pro style)
-                                if viewModel.clickMode == .dwell && viewModel.dwellProgress > 0.05 {
-                                    var progressArc = Path()
-                                    let radius: CGFloat = 22
-                                    let startAngle = Angle(degrees: -90)
-                                    let endAngle = Angle(degrees: -90 + 360 * viewModel.dwellProgress)
-                                    progressArc.addArc(center: indexPt, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
-                                    context.stroke(progressArc, with: .color(Color.yellow), style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+                             
+                            if let palm = landmarks.palmCenter {
+                                let palmPt = mapPt(palm)
+                                 
+                                let ringColor: Color
+                                if isPinching {
+                                    ringColor = isDragging ? Color.purple : Color.green
+                                } else {
+                                    ringColor = Color.blue.opacity(0.85)
                                 }
                                 
-                                // Position Lock Ring Indicator
-                                if viewModel.clickMode == .pinchLock && viewModel.isPinchLocked {
-                                    let lockRing = Path(ellipseIn: CGRect(x: indexPt.x - 22, y: indexPt.y - 22, width: 44, height: 44))
-                                    context.stroke(lockRing, with: .color(Color.cyan), style: StrokeStyle(lineWidth: 2.5, dash: [5, 4]))
-                                }
-                            }
-                            
-                            // 5. Highlight Middle (Left Click) and Ring (Right Click) in FingerSplit Mode
-                            if viewModel.clickMode == .fingerSplit {
-                                if let middle = landmarks.middleTip {
-                                    let middlePt = mapPt(middle)
-                                    let isActive = viewModel.isMiddleFingerActive
-                                    let middleCircle = Path(ellipseIn: CGRect(x: middlePt.x - 9, y: middlePt.y - 9, width: 18, height: 18))
-                                    context.fill(middleCircle, with: .color(isActive ? Color.blue : Color.blue.opacity(0.35)))
-                                    context.stroke(middleCircle, with: .color(Color.white.opacity(0.8)), lineWidth: 1.5)
-                                }
-                                
-                                if let ring = landmarks.ringTip {
-                                    let ringPt = mapPt(ring)
-                                    let isActive = viewModel.isRingFingerActive
-                                    let ringCircle = Path(ellipseIn: CGRect(x: ringPt.x - 9, y: ringPt.y - 9, width: 18, height: 18))
-                                    context.fill(ringCircle, with: .color(isActive ? Color.orange : Color.orange.opacity(0.35)))
-                                    context.stroke(ringCircle, with: .color(Color.white.opacity(0.8)), lineWidth: 1.5)
-                                }
+                                let outerRing = Path(ellipseIn: CGRect(x: palmPt.x - 18, y: palmPt.y - 18, width: 36, height: 36))
+                                context.stroke(
+                                    outerRing,
+                                    with: .color(ringColor),
+                                    style: StrokeStyle(lineWidth: isPinching ? 3.0 : 2.0)
+                                )
+                                 
+                                var crosshair = Path()
+                                crosshair.move(to: CGPoint(x: palmPt.x - 24, y: palmPt.y))
+                                crosshair.addLine(to: CGPoint(x: palmPt.x - 12, y: palmPt.y))
+                                crosshair.move(to: CGPoint(x: palmPt.x + 12, y: palmPt.y))
+                                crosshair.addLine(to: CGPoint(x: palmPt.x + 24, y: palmPt.y))
+                                crosshair.move(to: CGPoint(x: palmPt.x - 24, y: palmPt.y))
+                                crosshair.addLine(to: CGPoint(x: palmPt.x, y: palmPt.y - 12))
+                                crosshair.move(to: CGPoint(x: palmPt.x, y: palmPt.y + 12))
+                                crosshair.addLine(to: CGPoint(x: palmPt.x, y: palmPt.y + 24))
+                                context.stroke(crosshair, with: .color(Color.white.opacity(0.7)), lineWidth: 1.5)
+                                 
+                                let centerDot = Path(ellipseIn: CGRect(x: palmPt.x - 6, y: palmPt.y - 6, width: 12, height: 12))
+                                context.fill(centerDot, with: .color(isPinching ? ringColor : Color.cyan))
                             }
                         }
                     }
@@ -350,12 +334,10 @@ struct ContentView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            
-            // HUD Overlay at Bottom of Camera View
+             
             VStack {
                 Spacer()
                 HStack(spacing: 12) {
-                    // Current Gesture Pill
                     HStack(spacing: 8) {
                         Image(systemName: viewModel.currentGesture.iconName)
                             .font(.body)
@@ -369,118 +351,65 @@ struct ContentView: View {
                     .cornerRadius(20)
                     
                     Spacer()
-                    
+                     
                     if viewModel.handLandmarks != nil {
-                        if viewModel.clickMode == .fingerSplit {
-                            HStack(spacing: 8) {
-                                HStack(spacing: 4) {
-                                    Circle()
-                                        .fill(viewModel.isMiddleFingerActive ? Color.blue : Color.gray.opacity(0.6))
-                                        .frame(width: 8, height: 8)
-                                    Text("中指左鍵: \(viewModel.isMiddleFingerActive ? "按下" : "就緒")")
-                                        .font(.caption2)
-                                        .fontWeight(viewModel.isMiddleFingerActive ? .bold : .regular)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(viewModel.isMiddleFingerActive ? Color.blue.opacity(0.2) : Color.clear)
-                                .cornerRadius(8)
-                                
-                                HStack(spacing: 4) {
-                                    Circle()
-                                        .fill(viewModel.isRingFingerActive ? Color.orange : Color.gray.opacity(0.6))
-                                        .frame(width: 8, height: 8)
-                                    Text("無名指右鍵: \(viewModel.isRingFingerActive ? "觸發" : "就緒")")
-                                        .font(.caption2)
-                                        .fontWeight(viewModel.isRingFingerActive ? .bold : .regular)
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(viewModel.isRingFingerActive ? Color.orange.opacity(0.2) : Color.clear)
-                                .cornerRadius(8)
+                        HStack(spacing: 8) {
+                            Text("黏合距離:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            ProgressView(
+                                value: max(0.0, min(1.0, Double(viewModel.thumbToIndexDistance))),
+                                total: 0.8
+                            )
+                            .progressViewStyle(.linear)
+                            .frame(width: 80)
+                            .tint(viewModel.isPinchingLeft ? (viewModel.isActivelyDragging ? .purple : .green) : .orange)
+                            
+                            Text(String(format: "%.2f", viewModel.thumbToIndexDistance))
+                                .font(.caption)
+                                .monospacedDigit()
+                            
+                            if viewModel.isPinchingLeft {
+                                Text(viewModel.isActivelyDragging ? "拖曳中" : "點擊鎖定")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background((viewModel.isActivelyDragging ? Color.purple : Color.green).opacity(0.3))
+                                    .foregroundColor(viewModel.isActivelyDragging ? .purple : .green)
+                                    .cornerRadius(4)
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(16)
-                        } else if viewModel.clickMode == .dwell {
-                            HStack(spacing: 6) {
-                                Image(systemName: "timer")
-                                    .font(.caption)
-                                    .foregroundColor(.yellow)
-                                Text("停留進度:")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                ProgressView(value: viewModel.dwellProgress, total: 1.0)
-                                    .progressViewStyle(.linear)
-                                    .frame(width: 75)
-                                    .tint(viewModel.dwellProgress > 0.8 ? .green : .yellow)
-                                Text(String(format: "%.0f%%", viewModel.dwellProgress * 100))
-                                    .font(.caption)
-                                    .monospacedDigit()
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(16)
-                        } else {
-                            HStack(spacing: 6) {
-                                Text("捏合距離:")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                
-                                ProgressView(
-                                    value: max(0.0, min(1.0, Double(viewModel.thumbToIndexDistance))),
-                                    total: 0.8
-                                )
-                                .progressViewStyle(.linear)
-                                .frame(width: 80)
-                                .tint(viewModel.thumbToIndexDistance < CGFloat(viewModel.pinchThreshold) ? .green : .blue)
-                                
-                                Text(String(format: "%.2f", viewModel.thumbToIndexDistance))
-                                    .font(.caption)
-                                    .monospacedDigit()
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(16)
                         }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(16)
                     }
                 }
                 .padding(14)
             }
         }
     }
-    
-    // MARK: - Control Section
+     
     private var controlSection: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                // Tracking Status Card
                 trackingStatusCard
-                
-                // Click Mode Selector
-                clickModeSection
-                
-                // Camera Selector
+                 
                 cameraPickerSection
-                
-                // Sensitivity & Smoothing Sliders
+                 
                 parameterSettingsSection
-                
-                // Gesture Features Toggles
-                gestureTogglesSection
-                
-                // Visual Guide Card
+                 
+                feedbackSection
+                 
                 gestureGuideSection
             }
             .padding(16)
         }
         .background(Color(NSColor.controlBackgroundColor))
     }
-    
-    // MARK: - Subviews in Control Section
+     
     
     private var trackingStatusCard: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -499,80 +428,11 @@ struct ContentView: View {
                     .cornerRadius(4)
             }
             
-            Text(statusCardSubtitle)
+            Text(viewModel.isTrackingActive
+                 ? "以手掌位置移動帶動滑鼠光標，拇指與食指指尖黏合觸發左鍵點擊（具備防誤拖鎖定機制）。"
+                 : "點擊上方按鈕或按下快捷鍵即可啟動手勢控制。")
                 .font(.caption)
                 .foregroundColor(.secondary)
-        }
-        .padding(12)
-        .background(Color(NSColor.textBackgroundColor))
-        .cornerRadius(10)
-    }
-    
-    private var statusCardSubtitle: String {
-        guard viewModel.isTrackingActive else {
-            return "點擊上方按鈕或按下快捷鍵即可啟動手勢控制。"
-        }
-        switch viewModel.clickMode {
-        case .fingerSplit:
-            return "【中指左鍵 + 無名指右鍵】食指瞄準移動，中指按壓控制左鍵（按住拖曳），無名指按壓控制右鍵。食指完全不位移。"
-        case .dwell:
-            return "【停留懸停點擊】移動食指至目標並停留約 \(String(format: "%.1f", viewModel.dwellDuration)) 秒，自動觸發點擊，指針完全不位移。"
-        case .pinchLock:
-            return "【防位移捏合】食指瞄準目標，雙指靠近時指針立即凍結，捏合完成點擊。"
-        case .classicPinch:
-            return "【捏合】食指移動光標，拇指食指捏合為左鍵。"
-        }
-    }
-    
-    private var clickModeSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("點擊觸發方式")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                Spacer()
-                Text(viewModel.clickMode.shortTitle)
-                    .font(.caption)
-                    .foregroundColor(.accentColor)
-                    .fontWeight(.semibold)
-            }
-            
-            Picker("點擊模式", selection: $viewModel.clickMode) {
-                ForEach(ClickMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
-                }
-            }
-            .pickerStyle(.menu)
-            .labelsHidden()
-            
-            Text(viewModel.clickMode.description)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(6)
-            
-            if viewModel.clickMode == .dwell {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("停留觸發時間")
-                            .font(.caption)
-                        Spacer()
-                        Text(String(format: "%.1f 秒", viewModel.dwellDuration))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    Slider(value: $viewModel.dwellDuration, in: 0.4...1.6, step: 0.1)
-                    HStack {
-                        Text("敏捷快速 (0.4s)").font(.caption2).foregroundColor(.secondary)
-                        Spacer()
-                        Text("充裕防誤觸 (1.6s)").font(.caption2).foregroundColor(.secondary)
-                    }
-                }
-                .padding(.top, 4)
-            }
         }
         .padding(12)
         .background(Color(NSColor.textBackgroundColor))
@@ -603,50 +463,68 @@ struct ContentView: View {
     
     private var parameterSettingsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("靈敏度與平滑調整")
+            Text("靈敏度與防抖調整")
                 .font(.subheadline)
                 .fontWeight(.semibold)
-            
-            // Smoothing Slider
+             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("指針平滑度")
+                    Text("鼠標靈敏度 (游標速度)")
+                        .font(.caption)
+                    Spacer()
+                    Text(String(format: "%.1fx", viewModel.sensitivity))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                Slider(value: $viewModel.sensitivity, in: 0.6...3.0, step: 0.1)
+                HStack {
+                    Text("低 (大幅移動)").font(.caption2).foregroundColor(.secondary)
+                    Spacer()
+                    Text("預設 (1.5x)").font(.caption2).foregroundColor(.secondary)
+                    Spacer()
+                    Text("高 (微幅輕移)").font(.caption2).foregroundColor(.secondary)
+                }
+            }
+             
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("指針平滑度 (防抖)")
                         .font(.caption)
                     Spacer()
                     Text(String(format: "%.0f%%", viewModel.smoothingFactor * 100))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                Slider(value: $viewModel.smoothingFactor, in: 0.1...0.95, step: 0.05)
+                Slider(value: $viewModel.smoothingFactor, in: 0.05...0.90, step: 0.05)
                 HStack {
-                    Text("更靈敏").font(.caption2).foregroundColor(.secondary)
+                    Text("更敏捷跟手").font(.caption2).foregroundColor(.secondary)
                     Spacer()
-                    Text("更穩定防抖").font(.caption2).foregroundColor(.secondary)
+                    Text("更平滑抗抖").font(.caption2).foregroundColor(.secondary)
                 }
             }
-            
-            // Active Zone (Reachability) Slider
+             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("手勢感應邊界 (滿屏範圍)")
+                    Text("點擊防誤拖死區 (位移門檻)")
                         .font(.caption)
                     Spacer()
-                    Text(String(format: "%.0f%%", (1.0 - viewModel.activeZonePadding * 2) * 100))
+                    Text(String(format: "%.0f px", viewModel.dragThreshold))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                Slider(value: $viewModel.activeZonePadding, in: 0.05...0.30, step: 0.02)
+                Slider(value: $viewModel.dragThreshold, in: 10.0...40.0, step: 2.0)
                 HStack {
-                    Text("大幅移動").font(.caption2).foregroundColor(.secondary)
+                    Text("敏捷拖曳 (10px)").font(.caption2).foregroundColor(.secondary)
                     Spacer()
-                    Text("小幅輕移").font(.caption2).foregroundColor(.secondary)
+                    Text("預設 (22px)").font(.caption2).foregroundColor(.secondary)
+                    Spacer()
+                    Text("抗抖防誤拖 (40px)").font(.caption2).foregroundColor(.secondary)
                 }
             }
-            
-            // Pinch Threshold Slider
+             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("捏合點擊距離閾值")
+                    Text("黏合點擊距離閾值")
                         .font(.caption)
                     Spacer()
                     Text(String(format: "%.2f", viewModel.pinchThreshold))
@@ -655,9 +533,9 @@ struct ContentView: View {
                 }
                 Slider(value: $viewModel.pinchThreshold, in: 0.15...0.45, step: 0.02)
                 HStack {
-                    Text("緊密捏合").font(.caption2).foregroundColor(.secondary)
+                    Text("緊密黏合").font(.caption2).foregroundColor(.secondary)
                     Spacer()
-                    Text("輕輕靠近").font(.caption2).foregroundColor(.secondary)
+                    Text("輕碰黏合").font(.caption2).foregroundColor(.secondary)
                 }
             }
         }
@@ -666,16 +544,12 @@ struct ContentView: View {
         .cornerRadius(10)
     }
     
-    private var gestureTogglesSection: some View {
+    private var feedbackSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("手勢功能開關")
+            Text("操作反饋")
                 .font(.subheadline)
                 .fontWeight(.semibold)
             
-            Toggle("啟用雙指滾動頁面", isOn: $viewModel.enableScroll)
-                .font(.caption)
-            Toggle("啟用中指捏合右鍵點擊", isOn: $viewModel.enableRightClick)
-                .font(.caption)
             Toggle("點擊時發出提示音", isOn: $viewModel.soundFeedback)
                 .font(.caption)
         }
@@ -685,28 +559,28 @@ struct ContentView: View {
     }
     
     private var gestureGuideSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("手勢操作指南")
                 .font(.subheadline)
                 .fontWeight(.semibold)
             
-            guideItem(icon: "hand.point.up.fill", title: "移動鼠標 (食指)", description: "舉起食指在鏡頭中移動即可帶動光標，食指完全不負責按鍵，瞄準極致穩定。")
+            guideItem(
+                icon: "hand.point.up.left.fill",
+                title: "手掌移動鼠標",
+                description: "以手掌位置平移即可穩定帶動光標，瞄準目標時手指動作不會干擾游標座標。"
+            )
             
-            switch viewModel.clickMode {
-            case .fingerSplit:
-                guideItem(icon: "hand.raised.fingers.spread.fill", title: "中指左鍵 + 無名指右鍵 (當前模式)", description: "中指下彎/輕捏為左鍵（按住可拖曳）；無名指下彎/輕捏為右鍵。食指零位移！")
-            case .dwell:
-                guideItem(icon: "timer", title: "停留點擊 (當前模式)", description: "食指移至目標後停頓 \(String(format: "%.1f", viewModel.dwellDuration)) 秒自動觸發點擊，指針絕對不位移。")
-            case .pinchLock:
-                guideItem(icon: "lock.shield.fill", title: "防位移捏合 (當前模式)", description: "手指開始靠近時游標自動鎖定在原位，捏合觸發點擊，大幅移動才拖曳。")
-            case .classicPinch:
-                guideItem(icon: "hand.tap.fill", title: "傳統捏合 (當前模式)", description: "拇指與食指指尖碰觸即點擊。持續捏合移動可拖曳。")
-            }
+            guideItem(
+                icon: "hand.tap.fill",
+                title: "黏合純點擊 (防誤拖)",
+                description: "拇指食指指尖黏合後分開，系統會將游標鎖定在原地釋放，徹底防止手抖觸發短拖曳。"
+            )
             
-            if viewModel.clickMode != .fingerSplit {
-                guideItem(icon: "contextualmenu.and.cursor", title: "右鍵單擊", description: "拇指與中指輕觸捏合，觸發右鍵選單。")
-            }
-            guideItem(icon: "arrow.up.and.down.circle.fill", title: "雙指滾動", description: "食指與中指併攏同時上下移動，快速滾動頁面。")
+            guideItem(
+                icon: "hand.draw.fill",
+                title: "黏合拖曳 (故意位移)",
+                description: "黏合後若手掌移動超過防抖死區，系統會自動平滑切換至拖曳模式，隨意搬動視窗或文件。"
+            )
         }
         .padding(12)
         .background(Color(NSColor.textBackgroundColor))

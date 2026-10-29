@@ -19,23 +19,16 @@ final class HandPoseDetector {
     var pinchDownThreshold: CGFloat = 0.26
     var pinchUpThreshold: CGFloat = 0.36
     
-    var rightClickThreshold: CGFloat = 0.28
-    
-    // Previous state for scroll tracking
-    private var lastScrollY: CGFloat?
-    
     func process(pixelBuffer: CVPixelBuffer) -> HandLandmarks? {
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
         
         do {
             try handler.perform([handPoseRequest])
             guard let observation = handPoseRequest.results?.first else {
-                lastScrollY = nil
                 return nil
             }
             return extractLandmarks(from: observation)
         } catch {
-            lastScrollY = nil
             return nil
         }
     }
@@ -86,25 +79,10 @@ final class HandPoseDetector {
         }
         landmarks.palmScale = palmScale
         
-        // Distances
+        // Thumb to index distance for pinch (黏合) detection
         if let thumb = landmarks.thumbTip, let index = landmarks.indexTip {
             let rawDist = distance(thumb, index)
             landmarks.thumbToIndexDistance = rawDist / palmScale
-        }
-        
-        if let thumb = landmarks.thumbTip, let middle = landmarks.middleTip {
-            let rawDist = distance(thumb, middle)
-            landmarks.thumbToMiddleDistance = rawDist / palmScale
-        }
-        
-        if let thumb = landmarks.thumbTip, let ring = landmarks.ringTip {
-            let rawDist = distance(thumb, ring)
-            landmarks.thumbToRingDistance = rawDist / palmScale
-        }
-        
-        if let index = landmarks.indexTip, let middle = landmarks.middleTip {
-            let rawDist = distance(index, middle)
-            landmarks.indexToMiddleDistance = rawDist / palmScale
         }
         
         return landmarks
