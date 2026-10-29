@@ -26,24 +26,24 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
     @Published var fps: Int = 0
     @Published var statusMessage: String = "準備就緒"
      
-    @Published var sensitivity: Double = 1.5 {
+    @Published var sensitivity: Double = 2.5 {
         didSet {
             mouseController.sensitivity = sensitivity
         }
     }
-    @Published var smoothingFactor: Double = 0.50 {
+    @Published var smoothingFactor: Double = 0.60 {
         didSet {
             mouseController.smoothing = smoothingFactor
         }
     }
-    @Published var pinchThreshold: Double = 0.26 {
+    @Published var pinchThreshold: Double = 0.15 {
         didSet {
             detector.pinchDownThreshold = CGFloat(pinchThreshold)
             detector.pinchUpThreshold = CGFloat(pinchThreshold) + 0.10
         }
     }
     /// 點擊防拖曳位移死區門檻（像素）
-    @Published var dragThreshold: Double = 22.0
+    @Published var dragThreshold: Double = 30.0
     
     @Published var soundFeedback: Bool = true
     @Published var mirrorCamera: Bool = true
@@ -72,6 +72,8 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         cameraManager.delegate = self
         mouseController.sensitivity = sensitivity
         mouseController.smoothing = smoothingFactor
+        detector.pinchDownThreshold = CGFloat(pinchThreshold)
+        detector.pinchUpThreshold = CGFloat(pinchThreshold) + 0.10
         checkPermissions()
         refreshCameras()
     }

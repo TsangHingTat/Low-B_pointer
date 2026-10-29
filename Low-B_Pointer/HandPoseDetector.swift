@@ -16,8 +16,8 @@ final class HandPoseDetector {
         return request
     }()
      
-    var pinchDownThreshold: CGFloat = 0.26
-    var pinchUpThreshold: CGFloat = 0.36
+    var pinchDownThreshold: CGFloat = 0.15
+    var pinchUpThreshold: CGFloat = 0.25
     
     func process(pixelBuffer: CVPixelBuffer) -> HandLandmarks? {
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])

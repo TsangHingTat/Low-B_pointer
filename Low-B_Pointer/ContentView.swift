@@ -480,7 +480,7 @@ struct ContentView: View {
                 HStack {
                     Text("低 (大幅移動)").font(.caption2).foregroundColor(.secondary)
                     Spacer()
-                    Text("預設 (1.5x)").font(.caption2).foregroundColor(.secondary)
+                    Text("預設 (2.5x)").font(.caption2).foregroundColor(.secondary)
                     Spacer()
                     Text("高 (微幅輕移)").font(.caption2).foregroundColor(.secondary)
                 }
@@ -516,7 +516,7 @@ struct ContentView: View {
                 HStack {
                     Text("敏捷拖曳 (10px)").font(.caption2).foregroundColor(.secondary)
                     Spacer()
-                    Text("預設 (22px)").font(.caption2).foregroundColor(.secondary)
+                    Text("預設 (30px)").font(.caption2).foregroundColor(.secondary)
                     Spacer()
                     Text("抗抖防誤拖 (40px)").font(.caption2).foregroundColor(.secondary)
                 }

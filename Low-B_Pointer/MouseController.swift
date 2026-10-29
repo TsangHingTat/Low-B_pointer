@@ -17,8 +17,8 @@ final class MouseController {
     private var lastMousePosition: CGPoint = .zero
     private let filter = AdaptiveFilter()
     
-    var sensitivity: Double = 1.5
-    var smoothing: Double = 0.50 {
+    var sensitivity: Double = 2.5
+    var smoothing: Double = 0.60 {
         didSet { filter.baseSmoothing = smoothing }
     }
     
