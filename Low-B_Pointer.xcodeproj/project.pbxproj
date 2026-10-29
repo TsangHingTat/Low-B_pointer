@@ -7,12 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		796330EF30936B4400C197DC /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796330EE30936B4400C197DC /* CameraManager.swift */; };
+		796330F130936EEB00C197DC /* HandPoseDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796330F030936EEB00C197DC /* HandPoseDetector.swift */; };
+		796330F3309376A500C197DC /* HandGestureModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796330F2309376A500C197DC /* HandGestureModel.swift */; };
+		796330F5309376A900C197DC /* HandGestureViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796330F4309376A900C197DC /* HandGestureViewModel.swift */; };
+		796330F8309376CF00C197DC /* MouseController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796330F6309376CF00C197DC /* MouseController.swift */; };
+		796330F9309376CF00C197DC /* SmoothFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796330F7309376CF00C197DC /* SmoothFilter.swift */; };
 		79A4C2193093402700F97BE9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79A4C20E3093402700F97BE9 /* Assets.xcassets */; };
 		79A4C21B3093402700F97BE9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79A4C2103093402700F97BE9 /* ContentView.swift */; };
 		79A4C21C3093402700F97BE9 /* Low-B_PointerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79A4C2113093402700F97BE9 /* Low-B_PointerApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		796330EE30936B4400C197DC /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		796330F030936EEB00C197DC /* HandPoseDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandPoseDetector.swift; sourceTree = "<group>"; };
+		796330F2309376A500C197DC /* HandGestureModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureModel.swift; sourceTree = "<group>"; };
+		796330F4309376A900C197DC /* HandGestureViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureViewModel.swift; sourceTree = "<group>"; };
+		796330F6309376CF00C197DC /* MouseController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseController.swift; sourceTree = "<group>"; };
+		796330F7309376CF00C197DC /* SmoothFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmoothFilter.swift; sourceTree = "<group>"; };
 		79A4C1C7309334D600F97BE9 /* Low-B_Pointer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Low-B_Pointer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		79A4C20E3093402700F97BE9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		79A4C2103093402700F97BE9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -51,7 +63,13 @@
 				79A4C2153093402700F97BE9 /* Low-B_Pointer.entitlements */,
 				79A4C20E3093402700F97BE9 /* Assets.xcassets */,
 				79A4C2113093402700F97BE9 /* Low-B_PointerApp.swift */,
+				796330EE30936B4400C197DC /* CameraManager.swift */,
 				79A4C2103093402700F97BE9 /* ContentView.swift */,
+				796330F030936EEB00C197DC /* HandPoseDetector.swift */,
+				796330F2309376A500C197DC /* HandGestureModel.swift */,
+				796330F4309376A900C197DC /* HandGestureViewModel.swift */,
+				796330F6309376CF00C197DC /* MouseController.swift */,
+				796330F7309376CF00C197DC /* SmoothFilter.swift */,
 			);
 			path = "Low-B_Pointer";
 			sourceTree = "<group>";
@@ -121,7 +139,13 @@
 		79A4C1C3309334D600F97BE9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				796330F8309376CF00C197DC /* MouseController.swift in Sources */,
+				796330F9309376CF00C197DC /* SmoothFilter.swift in Sources */,
+				796330F3309376A500C197DC /* HandGestureModel.swift in Sources */,
 				79A4C21B3093402700F97BE9 /* ContentView.swift in Sources */,
+				796330F130936EEB00C197DC /* HandPoseDetector.swift in Sources */,
+				796330F5309376A900C197DC /* HandGestureViewModel.swift in Sources */,
+				796330EF30936B4400C197DC /* CameraManager.swift in Sources */,
 				79A4C21C3093402700F97BE9 /* Low-B_PointerApp.swift in Sources */,
 			);
 		};
