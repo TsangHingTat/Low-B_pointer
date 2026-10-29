@@ -1,4 +1,4 @@
-# Low-B Pointer
+# 低能手指指
 
 一個基於手勢識別的 macOS 虛擬滑鼠指針控制App。
 
