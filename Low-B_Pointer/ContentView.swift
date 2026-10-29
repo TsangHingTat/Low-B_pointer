@@ -196,11 +196,16 @@ struct ContentView: View {
                     let size = geo.size
                     
                     ZStack {
-                        Image(decorative: cgImage, scale: 1.0)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: size.width, height: size.height)
-                            .scaleEffect(x: viewModel.mirrorCamera ? -1 : 1, y: 1)
+                        if viewModel.showCameraFeed {
+                            Image(decorative: cgImage, scale: 1.0)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: size.width, height: size.height)
+                                .scaleEffect(x: viewModel.mirrorCamera ? -1 : 1, y: 1)
+                        } else {
+                            Color.black
+                                .frame(width: size.width, height: size.height)
+                        }
                          
                         let isMirrored = viewModel.mirrorCamera
                         let pinchThresh = CGFloat(viewModel.pinchThreshold)
@@ -336,6 +341,26 @@ struct ContentView: View {
             }
              
             VStack {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        viewModel.showCameraFeed.toggle()
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: viewModel.showCameraFeed ? "video.fill" : "video.slash")
+                            Text(viewModel.showCameraFeed ? "隱藏相機畫面" : "顯示相機畫面")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(14)
+                }
+                .padding(14)
+                
                 Spacer()
                 HStack(spacing: 12) {
                     HStack(spacing: 8) {
@@ -420,12 +445,6 @@ struct ContentView: View {
                 Text(viewModel.isTrackingActive ? "滑鼠手勢控制中" : "已暫停控制")
                     .font(.headline)
                 Spacer()
-                Text("⌘ + 空白鍵")
-                    .font(.caption2)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color(NSColor.quaternaryLabelColor))
-                    .cornerRadius(4)
             }
             
             Text(viewModel.isTrackingActive
@@ -454,6 +473,9 @@ struct ContentView: View {
             .labelsHidden()
             
             Toggle("水平鏡像畫面", isOn: $viewModel.mirrorCamera)
+                .font(.caption)
+            
+            Toggle("顯示相機畫面 (關閉時保留手勢線條)", isOn: $viewModel.showCameraFeed)
                 .font(.caption)
         }
         .padding(12)

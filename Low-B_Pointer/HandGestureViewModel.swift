@@ -47,6 +47,7 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
     
     @Published var soundFeedback: Bool = true
     @Published var mirrorCamera: Bool = true
+    @Published var showCameraFeed: Bool = true
     
     @Published var availableCameras: [AVCaptureDevice] = []
     @Published var selectedCameraID: String = "" {
