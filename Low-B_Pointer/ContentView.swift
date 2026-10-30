@@ -34,6 +34,10 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             viewModel.checkPermissions()
+            viewModel.refreshDisplays()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
+            viewModel.refreshDisplays()
         }
         .onDisappear { viewModel.stopCamera() }
     }
@@ -329,6 +333,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 20) {
                 trackingStatusCard
                 cameraPickerSection
+                displayPickerSection
                 parameterSettingsSection
                 feedbackSection
                 gestureGuideSection
@@ -366,6 +371,27 @@ struct ContentView: View {
             .pickerStyle(.menu).labelsHidden()
             Toggle("水平鏡像畫面", isOn: $viewModel.mirrorCamera).font(.caption)
             Toggle("顯示相機畫面 (關閉時保留手勢線條)", isOn: $viewModel.showCameraFeed).font(.caption)
+        }
+        .padding(12).background(Color(NSColor.textBackgroundColor)).cornerRadius(10)
+    }
+    
+    private var displayPickerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("控制顯示器 (螢幕)").font(.subheadline).fontWeight(.semibold)
+            Picker("選擇顯示器", selection: $viewModel.selectedDisplayID) {
+                Text("主顯示器 (預設)").tag("main")
+                if viewModel.availableDisplays.count > 1 {
+                    Text("跟隨游標所在螢幕").tag("cursor")
+                    Divider()
+                    ForEach(viewModel.availableDisplays) { display in
+                        Text(display.name).tag(display.id)
+                    }
+                }
+            }
+            .pickerStyle(.menu).labelsHidden()
+            
+            Text(viewModel.selectedDisplayDescription)
+                .font(.caption2).foregroundColor(.secondary)
         }
         .padding(12).background(Color(NSColor.textBackgroundColor)).cornerRadius(10)
     }
@@ -479,4 +505,6 @@ struct ContentView: View {
     }
 }
 
-#Preview { ContentView() }
+#Preview {
+    ContentView()
+}

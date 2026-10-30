@@ -57,6 +57,27 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
             }
         }
     }
+    
+    @Published var availableDisplays: [DisplayTarget] = []
+    @Published var selectedDisplayID: String = "main" {
+        didSet {
+            mouseController.targetDisplayMode = selectedDisplayID
+        }
+    }
+    
+    var selectedDisplayDescription: String {
+        if selectedDisplayID == "main" {
+            if let main = availableDisplays.first(where: { $0.isMain }) {
+                return "目前鎖定主顯示器：\(main.name)"
+            }
+            return "鎖定系統主顯示器"
+        } else if selectedDisplayID == "cursor" {
+            return "當前游標在任一螢幕時，手勢將自動控制該螢幕"
+        } else if let match = availableDisplays.first(where: { $0.id == selectedDisplayID }) {
+            return "已鎖定特定顯示器：\(match.name)"
+        }
+        return "主顯示器"
+    }
      
     private let cameraManager = CameraManager()
     private let detector = HandPoseDetector()
@@ -73,10 +94,12 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         cameraManager.delegate = self
         mouseController.sensitivity = sensitivity
         mouseController.smoothing = smoothingFactor
+        mouseController.targetDisplayMode = selectedDisplayID
         detector.pinchDownThreshold = CGFloat(pinchThreshold)
         detector.pinchUpThreshold = CGFloat(pinchThreshold) + 0.10
         checkPermissions()
         refreshCameras()
+        refreshDisplays()
     }
     
     func checkPermissions() {
@@ -132,6 +155,15 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         }
     }
     
+    func refreshDisplays() {
+        availableDisplays = MouseController.getAvailableDisplays()
+        if selectedDisplayID != "main" && selectedDisplayID != "cursor" {
+            if !availableDisplays.contains(where: { $0.id == selectedDisplayID }) {
+                selectedDisplayID = "main"
+            }
+        }
+    }
+    
     func startCamera() {
         cameraManager.start()
     }
@@ -145,6 +177,8 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
     }
     
     func toggleTracking() {
+        checkPermissions()
+        refreshDisplays()
         isTrackingActive.toggle()
         if !isTrackingActive {
             mouseController.reset()
