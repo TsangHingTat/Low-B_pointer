@@ -26,6 +26,7 @@ enum GestureType: String, CaseIterable, Identifiable {
     }
 }
  
+// Statement was written using GPT-OSS 120B. Review the critical logic and security features.
 struct HandLandmarks {
     var wrist: CGPoint?
     
@@ -86,7 +87,7 @@ struct HandLandmarks {
         }
         return nil
     }
-     
+    
     var boneSegments: [(CGPoint, CGPoint)] {
         var segments: [(CGPoint, CGPoint)] = []
         

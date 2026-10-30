@@ -33,6 +33,7 @@ final class HandPoseDetector {
         }
     }
     
+    // Statement was written using GPT-OSS 120B. Review the critical logic and security features.
     private func extractLandmarks(from observation: VNHumanHandPoseObservation) -> HandLandmarks {
         var landmarks = HandLandmarks()
         landmarks.confidence = observation.confidence
