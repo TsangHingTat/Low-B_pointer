@@ -336,7 +336,6 @@ struct ContentView: View {
                 displayPickerSection
                 parameterSettingsSection
                 feedbackSection
-                gestureGuideSection
             }
             .padding(16)
         }
@@ -370,11 +369,11 @@ struct ContentView: View {
             }
             .pickerStyle(.menu).labelsHidden()
             Toggle("水平鏡像畫面", isOn: $viewModel.mirrorCamera).font(.caption)
-            Toggle("顯示相機畫面 (關閉時保留手勢線條)", isOn: $viewModel.showCameraFeed).font(.caption)
+            Toggle("顯示相機畫面", isOn: $viewModel.showCameraFeed).font(.caption)
             
             Divider().padding(.vertical, 2)
             
-            Toggle("啟用 60 FPS 高幀率模式 (極致流暢)", isOn: $viewModel.enable60FPS).font(.caption)
+            Toggle("啟用 60 FPS 高幀率模式", isOn: $viewModel.enable60FPS).font(.caption)
             
             HStack(alignment: .top, spacing: 5) {
                 Image(systemName: viewModel.is60FPSAvailable ? "bolt.fill" : "info.circle")
@@ -392,7 +391,7 @@ struct ContentView: View {
     
     private var displayPickerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("控制顯示器 (螢幕)").font(.subheadline).fontWeight(.semibold)
+            Text("控制顯示器").font(.subheadline).fontWeight(.semibold)
             Picker("選擇顯示器", selection: $viewModel.selectedDisplayID) {
                 Text("主顯示器 (預設)").tag("main")
                 if viewModel.availableDisplays.count > 1 {
@@ -491,33 +490,7 @@ struct ContentView: View {
         }
         .padding(12).background(Color(NSColor.textBackgroundColor)).cornerRadius(10)
     }
-    
-    private var gestureGuideSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("手勢操作指南")
-                .font(.subheadline).fontWeight(.semibold)
-            guideItem(icon: "hand.point.up.left.fill",
-                      title: "手掌移動鼠標",
-                      description: "以手掌位置平移即可穩定帶動光標，瞄準目標時手指動作不會干擾游標座標。")
-            guideItem(icon: "hand.tap.fill",
-                      title: "黏合純點擊 (防誤拖)",
-                      description: "拇指食指指尖黏合後分開，系統會將游標鎖定在原地釋放，徹底防止手抖觸發短拖曳。")
-            guideItem(icon: "hand.draw.fill",
-                      title: "黏合拖曳 (故意位移)",
-                      description: "黏合後若手掌移動超過防抖死區，系統會自動平滑切換至拖曳模式，隨意搬動視窗或文件。")
-        }
-        .padding(12).background(Color(NSColor.textBackgroundColor)).cornerRadius(10)
-    }
-    
-    private func guideItem(icon: String, title: String, description: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon).font(.title3).foregroundColor(.accentColor).frame(width: 24)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.caption).fontWeight(.semibold)
-                Text(description).font(.caption2).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
+
 }
 
 #Preview {

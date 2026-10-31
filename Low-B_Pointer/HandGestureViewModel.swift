@@ -70,9 +70,9 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
     var fpsStatusDescription: String {
         if enable60FPS {
             if is60FPSAvailable {
-                return "已啟用 60 FPS 高幀率模式，游標追蹤極致流暢。"
+                return "已啟用 60 FPS 高幀率模式。"
             } else {
-                return "當前相機硬體上限為 30 FPS（連接外接 60fps 鏡頭或 iPhone 接續互通相機可達 60 FPS）。"
+                return "當前相機硬體上限為 30 FPS。"
             }
         } else {
             return "已設定為 30 FPS 標準模式。"
@@ -269,7 +269,7 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         
         guard isTrackingActive else {
             currentGesture = .none
-            statusMessage = "手勢已偵測（尚未啟用滑鼠控制）"
+            statusMessage = "未啟用"
             resetGestureStates()
             return
         }
