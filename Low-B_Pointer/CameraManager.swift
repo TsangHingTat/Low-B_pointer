@@ -30,14 +30,6 @@ final class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
     
     private(set) var availableDevices: [AVCaptureDevice] = []
     private(set) var currentDevice: AVCaptureDevice?
-    private(set) var targetFPS: Int = 60
-    
-    var is60FPSAvailable: Bool {
-        guard let device = currentDevice else { return false }
-        return device.formats.contains { format in
-            format.videoSupportedFrameRateRanges.contains { $0.maxFrameRate >= 59.9 }
-        }
-    }
     
     override init() {
         super.init()
@@ -91,57 +83,8 @@ final class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
                self.captureSession.canAddInput(newInput) {
                 self.captureSession.addInput(newInput)
                 self.currentInput = newInput
-                self.applyFrameRate(to: device, targetFPS: self.targetFPS)
             }
             self.captureSession.commitConfiguration()
-        }
-    }
-    
-    func setTargetFPS(_ fps: Int) {
-        targetFPS = fps
-        sessionQueue.async { [weak self] in
-            guard let self = self, let device = self.currentDevice else { return }
-            self.captureSession.beginConfiguration()
-            self.applyFrameRate(to: device, targetFPS: fps)
-            self.captureSession.commitConfiguration()
-        }
-    }
-    
-    private func applyFrameRate(to device: AVCaptureDevice, targetFPS: Int) {
-        do {
-            try device.lockForConfiguration()
-            defer { device.unlockForConfiguration() }
-            
-            if targetFPS >= 60 {
-                let formats60 = device.formats.filter { f in
-                    f.videoSupportedFrameRateRanges.contains { $0.maxFrameRate >= 59.9 }
-                }
-                if !formats60.isEmpty {
-                    let best = formats60.first(where: {
-                        let d = CMVideoFormatDescriptionGetDimensions($0.formatDescription)
-                        return d.width == 1280 && d.height == 720
-                    }) ?? formats60.first(where: {
-                        let d = CMVideoFormatDescriptionGetDimensions($0.formatDescription)
-                        return d.width == 1920 && d.height == 1080
-                    }) ?? formats60.first!
-                    
-                    if device.activeFormat != best {
-                        device.activeFormat = best
-                    }
-                    let duration = CMTime(value: 1, timescale: 60)
-                    device.activeVideoMinFrameDuration = duration
-                    device.activeVideoMaxFrameDuration = duration
-                    return
-                }
-            }
-             
-            let maxFPS = device.activeFormat.videoSupportedFrameRateRanges.map(\.maxFrameRate).max() ?? 30.0
-            let desiredFPS = min(Double(targetFPS), maxFPS)
-            let duration = CMTime(value: 1, timescale: Int32(desiredFPS))
-            device.activeVideoMinFrameDuration = duration
-            device.activeVideoMaxFrameDuration = duration
-        } catch {
-            print("Failed to lock device for frame rate configuration: \(error)")
         }
     }
     
@@ -174,13 +117,15 @@ final class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
             captureSession.commitConfiguration()
             isSessionConfigured = true
         }
-         
+        
+        // Use 1280x720 or High for balance of speed and clarity
         if captureSession.canSetSessionPreset(.hd1280x720) {
             captureSession.sessionPreset = .hd1280x720
         } else if captureSession.canSetSessionPreset(.high) {
             captureSession.sessionPreset = .high
         }
-         
+        
+        // Clear existing inputs/outputs if any
         for input in captureSession.inputs {
             captureSession.removeInput(input)
         }
@@ -193,7 +138,6 @@ final class CameraManager: NSObject, AVCaptureVideoDataOutputSampleBufferDelegat
             captureSession.addInput(input)
             currentInput = input
             currentDevice = dev
-            self.applyFrameRate(to: dev, targetFPS: self.targetFPS)
         }
         
         videoOutput.videoSettings = [

@@ -42,7 +42,7 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
             detector.pinchUpThreshold = CGFloat(pinchThreshold) + 0.10
         }
     }
-    
+    /// 點擊防拖曳位移死區門檻（像素）
     @Published var dragThreshold: Double = 30.0
     
     @Published var soundFeedback: Bool = true
@@ -54,7 +54,6 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         didSet {
             if !selectedCameraID.isEmpty && selectedCameraID != oldValue {
                 cameraManager.selectDevice(withID: selectedCameraID)
-                update60FPSAvailability()
             }
         }
     }
@@ -113,7 +112,6 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
     
     init() {
         cameraManager.delegate = self
-        cameraManager.setTargetFPS(enable60FPS ? 60 : 30)
         mouseController.sensitivity = sensitivity
         mouseController.smoothing = smoothingFactor
         mouseController.targetDisplayMode = selectedDisplayID
@@ -122,10 +120,8 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         checkPermissions()
         refreshCameras()
         refreshDisplays()
-        update60FPSAvailability()
     }
     
-    // Statement was written using GPT-OSS 120B. Review the critical logic and security features.
     func checkPermissions() {
         cameraAuthStatus = CameraManager.checkAuthorization()
         cameraAuthorized = (cameraAuthStatus == .authorized)
@@ -135,7 +131,6 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         }
     }
     
-    // Statement was written using GPT-OSS 120B. Review the critical logic and security features.
     func requestCameraPermission() {
         let status = CameraManager.checkAuthorization()
         if status == .denied || status == .restricted {
@@ -153,14 +148,12 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         }
     }
     
-    // Statement was written using GPT-OSS 120B. Review the critical logic and security features.
     func openCameraSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
             NSWorkspace.shared.open(url)
         }
     }
     
-    // Statement was written using GPT-OSS 120B. Review the critical logic and security features.
     func requestAccessibilityPermission() {
         MouseController.requestAccessibilityPermission()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
@@ -168,12 +161,10 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         }
     }
     
-    // Statement was written using GPT-OSS 120B. Review the critical logic and security features.
     func openAccessibilitySettings() {
         MouseController.openAccessibilitySettings()
     }
     
-    // Statement was written using GPT-OSS 120B. Review the critical logic and security features.
     func refreshCameras() {
         cameraManager.refreshAvailableDevices()
         availableCameras = cameraManager.availableDevices
@@ -182,12 +173,6 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         } else if let first = availableCameras.first {
             selectedCameraID = first.uniqueID
         }
-        update60FPSAvailability()
-    }
-    
-    // Statement was written using GPT-OSS 120B. Review the critical logic and security features.
-    func update60FPSAvailability() {
-        is60FPSAvailable = cameraManager.is60FPSAvailable
     }
     
     func refreshDisplays() {

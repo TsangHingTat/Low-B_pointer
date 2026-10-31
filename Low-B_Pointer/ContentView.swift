@@ -60,11 +60,11 @@ struct ContentView: View {
             if viewModel.cameraAuthorized {
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(viewModel.fps > 45 ? Color.cyan : (viewModel.fps > 20 ? Color.green : Color.orange))
+                        .fill(viewModel.fps > 20 ? Color.green : Color.orange)
                         .frame(width: 8, height: 8)
-                    Text("\(viewModel.fps) FPS\(viewModel.fps > 45 ? " (60Hz)" : "")")
+                    Text("\(viewModel.fps) FPS")
                         .font(.caption).monospacedDigit()
-                        .foregroundColor(viewModel.fps > 45 ? .primary : .secondary)
+                        .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .background(Color(NSColor.controlBackgroundColor))
@@ -369,7 +369,7 @@ struct ContentView: View {
             }
             .pickerStyle(.menu).labelsHidden()
             Toggle("水平鏡像畫面", isOn: $viewModel.mirrorCamera).font(.caption)
-            Toggle("顯示相機畫面", isOn: $viewModel.showCameraFeed).font(.caption)
+            Toggle("顯示相機畫面 (關閉時保留手勢線條)", isOn: $viewModel.showCameraFeed).font(.caption)
             
             Divider().padding(.vertical, 2)
             
