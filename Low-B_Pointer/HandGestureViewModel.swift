@@ -58,26 +58,6 @@ final class HandGestureViewModel: ObservableObject, CameraManagerDelegate {
         }
     }
     
-    @Published var enable60FPS: Bool = true {
-        didSet {
-            cameraManager.setTargetFPS(enable60FPS ? 60 : 30)
-            update60FPSAvailability()
-        }
-    }
-    @Published var is60FPSAvailable: Bool = false
-    
-    var fpsStatusDescription: String {
-        if enable60FPS {
-            if is60FPSAvailable {
-                return "已啟用 60 FPS 高幀率模式。"
-            } else {
-                return "當前相機硬體上限為 30 FPS。"
-            }
-        } else {
-            return "已設定為 30 FPS 標準模式。"
-        }
-    }
-    
     @Published var availableDisplays: [DisplayTarget] = []
     @Published var selectedDisplayID: String = "main" {
         didSet {

@@ -369,22 +369,8 @@ struct ContentView: View {
             }
             .pickerStyle(.menu).labelsHidden()
             Toggle("水平鏡像畫面", isOn: $viewModel.mirrorCamera).font(.caption)
-            Toggle("顯示相機畫面 (關閉時保留手勢線條)", isOn: $viewModel.showCameraFeed).font(.caption)
+            Toggle("顯示相機畫面", isOn: $viewModel.showCameraFeed).font(.caption)
             
-            Divider().padding(.vertical, 2)
-            
-            Toggle("啟用 60 FPS 高幀率模式", isOn: $viewModel.enable60FPS).font(.caption)
-            
-            HStack(alignment: .top, spacing: 5) {
-                Image(systemName: viewModel.is60FPSAvailable ? "bolt.fill" : "info.circle")
-                    .foregroundColor(viewModel.is60FPSAvailable ? .green : .secondary)
-                    .font(.caption2)
-                    .padding(.top, 1)
-                Text(viewModel.fpsStatusDescription)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
         .padding(12).background(Color(NSColor.textBackgroundColor)).cornerRadius(10)
     }
